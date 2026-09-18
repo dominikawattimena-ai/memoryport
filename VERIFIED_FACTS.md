@@ -50,3 +50,8 @@ REKOMENDASI:
 
 KEPUTUSAN DIPERLUKAN SEBELUM:
 [langkah build yang tidak boleh dilewati]
+
+
+## Deployment sync marker — 2026-09-18
+- [DOC-VERIFIED] Railway redeploy reuses the commit associated with the current deployment; it does not fetch the latest GitHub HEAD.
+- [LIVE-TESTED] OAuth discovery wiring source is present on GitHub main in server.js, but production must not be marked updated until Railway reports a deployment containing this marker commit or later and live discovery is re-tested.
