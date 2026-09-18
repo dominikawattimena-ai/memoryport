@@ -1,1 +1,1 @@
-{"name":"memoryport","private":true,"version":"1.0.0","type":"module","dependencies":{}}
+{"name":"memoryport","private":true,"version":"1.0.0","type":"module","scripts":{"start":"node server.js"},"engines":{"node":">=20"}}
