@@ -4,6 +4,7 @@ const CANONICAL='https://api-v2.appdeploy.ai/app/memoryport-acceptance-runtime-m
 const SUPABASE='https://rsnjkbdasrekxghevrse.supabase.co';
 const AUTH=SUPABASE+'/auth/v1';
 const ME=SUPABASE+'/functions/v1/memoryport-me';
+const CANONICAL_PROXY=SUPABASE+'/functions/v1/memoryport-canonical-proxy';
 const j=(res,s,b,h={})=>{res.writeHead(s,{'content-type':'application/json','cache-control':'no-store',...h});res.end(JSON.stringify(b))};
 const readBody=async req=>{let raw='';for await(const c of req)raw+=c;return raw};
 const server=http.createServer(async(req,res)=>{
@@ -21,7 +22,11 @@ const server=http.createServer(async(req,res)=>{
    if(!/^Bearer /i.test(auth))return j(res,401,{error:'unauthorized'},{'www-authenticate':'Bearer resource_metadata="'+base+'/.well-known/oauth-protected-resource/mcp"'});
    const token=auth.replace(/^Bearer\s+/i,'');
    const vr=await fetch(ME,{headers:{authorization:'Bearer '+token}});
-   if(vr.ok)return j(res,503,{jsonrpc:'2.0',id:b.id??null,error:{code:-32004,message:'MemoryPort owner pairing is not active yet. OAuth identity verified, canonical vault remains fail-closed.'}});
+   if(vr.ok){
+     if(b.method==='tools/list')return j(res,200,{jsonrpc:'2.0',id:b.id??null,result:{tools:[{name:'memoryport_get_context',description:'Read the owner canonical MemoryPort memory.',inputSchema:{type:'object',properties:{},additionalProperties:false}},{name:'memoryport_remember',description:'Save a new memory into the owner canonical MemoryPort vault.',inputSchema:{type:'object',properties:{content:{type:'string',minLength:1,maxLength:10000}},required:['content'],additionalProperties:false}}]}});
+     if(b.method==='tools/call'&&(b.params?.name==='memoryport_get_context'||b.params?.name==='memoryport_remember')){const action=b.params.name==='memoryport_get_context'?'read':'write';const content=String(b.params?.arguments?.content||'').trim();const pr=await fetch(CANONICAL_PROXY,{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+token},body:JSON.stringify(action==='read'?{action}:{action,content})});const data=await pr.json().catch(()=>({error:'pairing_proxy_error'}));if(!pr.ok)return j(res,pr.status===401?401:pr.status===403?403:502,{jsonrpc:'2.0',id:b.id??null,error:{code:-32004,message:data.error||'Canonical MemoryPort OAuth access failed.'}});return j(res,200,{jsonrpc:'2.0',id:b.id??null,result:{content:[{type:'text',text:action==='read'?JSON.stringify(data):'Saved to MemoryPort.'}],structuredContent:data}})}
+     return j(res,200,{jsonrpc:'2.0',id:b.id??null,error:{code:-32601,message:'Tool not found'}})
+   }
    const grantToken=token;
    if(b.method==='tools/list')return j(res,200,{jsonrpc:'2.0',id:b.id??null,result:{tools:[{name:'memoryport_get_context',description:'Read the owner canonical MemoryPort memory.',inputSchema:{type:'object',properties:{},additionalProperties:false}},{name:'memoryport_remember',description:'Save a new memory into the owner canonical MemoryPort vault.',inputSchema:{type:'object',properties:{content:{type:'string',minLength:1,maxLength:10000}},required:['content'],additionalProperties:false}}]}});
    if(b.method==='tools/call'&&b.params?.name==='memoryport_get_context'){const up=await fetch(CANONICAL+'/api/v1/context',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({grantToken})});const data=await up.json().catch(()=>({error:'canonical_error'}));if(!up.ok)return j(res,up.status===401?401:502,{jsonrpc:'2.0',id:b.id??null,error:{code:-32002,message:up.status===401?'MemoryPort permission is invalid or expired.':'Canonical MemoryPort read failed.'}});return j(res,200,{jsonrpc:'2.0',id:b.id??null,result:{content:[{type:'text',text:JSON.stringify(data)}],structuredContent:data}})}
