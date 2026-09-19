@@ -14,3 +14,5 @@ return j(res,404,{error:'not_found'})}).listen(PORT,()=>console.log('MemoryPort 
 // exact locked card asset production render
 
 // exact asset HEAD verification
+
+// exact locked card production release
