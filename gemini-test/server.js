@@ -14,3 +14,4 @@ if(u.pathname==='/start')return start(q,r,'gemini');if(u.pathname==='/gpt/start'
 if(u.pathname==='/callback'||u.pathname==='/gemini/callback'){try{const access=await token(u),x=await gemini(access);return html(r,200,'<h1>Cross-AI READ PASS</h1><p>Provider: Gemini</p><p>Memory rows: '+x.rows+'</p><pre>'+esc(x.answer)+'</pre><p>No token or API key displayed.</p>')}catch(e){return html(r,500,'Test failed: '+esc(e.message))}}
 if(u.pathname==='/gpt/callback'){try{const access=await token(u),x=await gpt(access);return html(r,200,'<h1>GPT × MemoryPort READ PASS</h1><p>Completed MCP calls: '+x.calls+'</p><pre>'+esc(x.answer)+'</pre><p>No token or API key displayed.</p>')}catch(e){return html(r,500,'Test failed: '+esc(e.message))}}
 return html(r,404,'Not found')}).listen(PORT,()=>console.log('MemoryPort cross-AI verifier listening',PORT));
+// security smoke verifier
