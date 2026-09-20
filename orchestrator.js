@@ -115,6 +115,53 @@ export function candidateContainsSensitiveData(candidate) {
   );
 }
 
+export function extractExplicitMemory(userMessage = "") {
+  const evidence = String(userMessage).trim();
+  if (
+    !evidence ||
+    evidence.length > 6000 ||
+    /\b(might|maybe|perhaps|possibly|mungkin|barangkali|rencana)\b/iu.test(
+      evidence,
+    )
+  )
+    return { save: false };
+
+  const patterns = [
+    {
+      kind: "Project",
+      re: /^my\s+project\s+(?:is\s+)?(?:called|named)\s+([\p{L}\p{N}][\p{L}\p{N} .&'_-]{0,79}?)(?=\s+(?:and|that|which)\b|[.!?]?$)/iu,
+    },
+    {
+      kind: "Company",
+      re: /^my\s+(?:company|business)\s+(?:is\s+)?(?:called|named)\s+([\p{L}\p{N}][\p{L}\p{N} .&'_-]{0,79}?)(?=\s+(?:and|that|which)\b|[.!?]?$)/iu,
+    },
+    {
+      kind: "Project",
+      re: /^(?:proyek|project)\s+(?:saya|aku|gue|gw)\s+(?:bernama|namanya)\s+([\p{L}\p{N}][\p{L}\p{N} .&'_-]{0,79}?)(?=\s+(?:dan|yang)\b|[.!?]?$)/iu,
+    },
+    {
+      kind: "Company",
+      re: /^(?:perusahaan|bisnis)\s+(?:saya|aku|gue|gw)\s+(?:bernama|namanya)\s+([\p{L}\p{N}][\p{L}\p{N} .&'_-]{0,79}?)(?=\s+(?:dan|yang)\b|[.!?]?$)/iu,
+    },
+  ];
+  for (const { kind, re } of patterns) {
+    const match = evidence.match(re);
+    const name = match?.[1]?.trim().replace(/[.!?]+$/, "");
+    if (!name) continue;
+    const candidate = {
+      save: true,
+      memory_class: "USER_CONFIRMED",
+      title: `${kind}: ${name}`,
+      content: evidence,
+      evidence,
+    };
+    return candidateContainsSensitiveData(candidate)
+      ? { save: false }
+      : candidate;
+  }
+  return { save: false };
+}
+
 export function memoryAlreadyExists(candidate, memories = []) {
   if (!candidate?.save) return false;
   const title = String(candidate.title || "")
