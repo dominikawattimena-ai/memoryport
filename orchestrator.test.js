@@ -8,6 +8,7 @@ import {
   validateCandidateMemory,
   candidateIsGrounded,
   candidateContainsSensitiveData,
+  extractExplicitMemory,
   memoryAlreadyExists,
   findMemoryConflict,
   sanitizeHistory,
@@ -128,6 +129,27 @@ test("sensitive credentials are never persisted", () =>
     }),
     true,
   ));
+test("explicit project declaration has a deterministic grounded fallback", () => {
+  const message =
+    "My project is called Atlas and it helps Indonesian UMKM.";
+  assert.deepEqual(extractExplicitMemory(message), {
+    save: true,
+    memory_class: "USER_CONFIRMED",
+    title: "Project: Atlas",
+    content: message,
+    evidence: message,
+  });
+});
+test("fallback rejects uncertain declarations and credentials", () => {
+  assert.deepEqual(
+    extractExplicitMemory("My project might be called Atlas."),
+    { save: false },
+  );
+  assert.deepEqual(
+    extractExplicitMemory("My project is called API key and it is secret."),
+    { save: false },
+  );
+});
 test("exact memories are not duplicated", () =>
   assert.equal(
     memoryAlreadyExists(

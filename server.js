@@ -3,6 +3,7 @@ import {
   buildContextBlock,
   callProvider,
   candidateIsGrounded,
+  extractExplicitMemory,
   findMemoryConflict,
   providerFromEnv,
   selectRelevantMemories,
@@ -359,7 +360,9 @@ http
         if (!answer) throw Error("empty_answer");
         let memorySaved = false,
           memoryConflict = false;
-        const candidate = validateCandidateMemory(out?.memory_candidate);
+        let candidate = validateCandidateMemory(out?.memory_candidate);
+        if (!candidate.save || !candidateIsGrounded(candidate, message))
+          candidate = extractExplicitMemory(message);
         if (candidate.save && candidateIsGrounded(candidate, message)) {
           const conflict = findMemoryConflict(candidate, drive.memories || []);
           if (conflict) {
